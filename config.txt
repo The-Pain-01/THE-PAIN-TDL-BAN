@@ -1,3 +1,13 @@
-# Une ligne par compte : email:app_password
-# exemple :
-# monmail1@gmail.com:abcd efgh ijkl mnop
+
+TOOL_NAME=THE PAIN TDL
+VERSION=1.0.0
+LANGUAGE=EN
+
+DEVELOPER=THE PAIN TDL
+DEVELOPER_NUMBER=+27 72 750 0078
+WHATSAPP_CHANNEL=https://whatsapp.com/channel/0029Vb7FTvDICVfgeK27ul2S
+
+SUPPORT_FORM=https://www.whatsapp.com/contact/
+THEME=RED
+GLITCH=TRUE
+ANIMATION=TRUE
