@@ -1,0 +1,3 @@
+# Une ligne par compte : email:app_password
+# exemple :
+# monmail1@gmail.com:abcd efgh ijkl mnop
