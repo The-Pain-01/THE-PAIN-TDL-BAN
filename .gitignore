@@ -1,2 +1,23 @@
+
+# Private Gmail credentials
+.env
+
+# Python cache
 __pycache__/
 *.pyc
+*.pyo
+
+# Private local settings
+config.local.txt
+
+# Temporary files
+*.log
+*.tmp
+
+# Editors
+.vscode/
+.idea/
+
+# Operating system
+.DS_Store
+Thumbs.db
