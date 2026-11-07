@@ -1,174 +1,301 @@
+
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# THE PAIN TDL BAN
 
-import smtplib
-import time
 import os
-import random
 import sys
-from email.mime.text import MIMEText
-from email.utils import formataddr
+import time
+import random
+import smtplib
+import webbrowser
+from pathlib import Path
+from email.message import EmailMessage
+from getpass import getpass
 
-BASE = os.path.dirname(os.path.abspath(__file__))
-CONFIG = os.path.join(BASE, "config.txt")
-SUPPORT = "support@support.whatsapp.com"
+BASE = Path(__file__).resolve().parent
+RED = "\033[1;31m"
+GREEN = "\033[1;32m"
+WHITE = "\033[1;37m"
+CYAN = "\033[1;36m"
+GRAY = "\033[90m"
+RESET = "\033[0m"
+BOLD = "\033[1m"
 
-R = "\033[1;31m"   # rouge gras
-G = "\033[1;32m"
-Y = "\033[1;33m"
-C = "\033[1;36m"
-W = "\033[1;37m"
-X = "\033[0m"      # reset
 
-BANNIERE = r"""
- ____  _   _ _____   ____    _    ___ _   _
-|  _ \| | | | ____| |  _ \  / \  |_ _| \ | |
-| |_) | |_| |  _|   | |_) |/ _ \  | ||  \| |
-|  __/|  _  | |___  |  __// ___ \ | || |\  |
-|_|   |_| |_|_____| |_|  /_/   \_\___|_| \_|
+def load_file(path):
+    data = {}
+    if not path.exists():
+        return data
 
-        ___  _   _   ____    _    _   _
-       |_ _|| \ | | | __ )  / \  | \ | |
-        | | |  \| | |  _ \ / _ \ |  \| |
-        | | | |\  | | |_) / ___ \| |\  |
-       |___||_| \_| |____/_/   \_\_| \_|
-"""
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            data[key.strip()] = value.strip()
 
-SUJETS = [
-    "Signalement compte spam",
-    "Compte arnaque - liens douteux",
-    "Signalement usurpation support WhatsApp",
-    "Spam massif depuis ce numéro",
-    "Compte envoie contenu gore / arnaque",
-]
+    return data
 
-CORPS = """Bonjour l'équipe WhatsApp,
 
-Je signale le compte suivant : {num}
-
-Depuis plusieurs jours ce compte :
-- envoie massivement des liens d'arnaque / faux concours
-- diffuse du contenu gore
-- se fait passer pour le support WhatsApp et réclame des codes
-
-Merci de vérifier et de suspendre si nécessaire.
-Rappel du numéro concerné : {num}
-
-Cordialement,
-Un utilisateur WhatsApp
-"""
+CONFIG = load_file(BASE / "config.txt")
+SECRETS = load_file(BASE / ".env")
 
 
 def clear():
     os.system("clear")
 
 
-def ecrire_lent(texte, delai=0.002):
-    for c in texte:
-        sys.stdout.write(c)
-        sys.stdout.flush()
-        time.sleep(delai)
-    print()
-
-
-def banniere():
+def logo():
     clear()
-    print(R + BANNIERE + X)
-    print(R + "=" * 55 + X)
-    print(R + "        THE PAIN TDL BAN  —  WHATSAPP EMAIL BAN" + X)
-    print(R + "=" * 55 + X)
-    print(C + "        [ signalement par emails — v1 ]" + X)
+    name = "ＴＨＥ　ＰＡＩＮ　ＴＤＬ"
+
+    for _ in range(3):
+        glitch = list(name)
+        index = random.randrange(len(glitch))
+        glitch[index] = random.choice(["▓", "▒", "█", "░"])
+        print("\r" + RED + BOLD + "".join(glitch) + RESET,
+              end="", flush=True)
+        time.sleep(0.12)
+
+    print("\r" + RED + BOLD + name + RESET)
+    print(CYAN + "       CYBER GLITCH TERMINAL" + RESET)
+    print(GREEN + "       [ SYSTEM ONLINE ]" + RESET)
+    print(GRAY + "       VERSION 1.0.0" + RESET)
     print()
 
 
-def charger_comptes():
-    if not os.path.exists(CONFIG):
-        return []
-    out = []
-    with open(CONFIG, "r", encoding="utf-8") as f:
-        for l in f:
-            l = l.strip()
-            if not l or l.startswith("#"):
-                continue
-            if ":" in l:
-                m, p = l.split(":", 1)
-                out.append((m.strip(), p.strip()))
-    return out
+def pause():
+    input(WHITE + "\nPress ENTER to continue..." + RESET)
 
 
-def envoyer(mail, pwd, numero, sujet, corps):
-    msg = MIMEText(corps, "plain", "utf-8")
-    msg["Subject"] = sujet
-    msg["From"] = formataddr(("Utilisateur WhatsApp", mail))
-    msg["To"] = SUPPORT
-
-    hote = "smtp.gmail.com"
-    if "outlook" in mail or "hotmail" in mail:
-        hote = "smtp-mail.outlook.com"
-    elif "yahoo" in mail:
-        hote = "smtp.mail.yahoo.com"
-
-    with smtplib.SMTP(hote, 587, timeout=30) as s:
-        s.starttls()
-        s.login(mail, pwd)
-        s.send_message(msg)
+def back():
+    print(WHITE + "\n0. BACK" + RESET)
+    return input("\nroot@the-pain:~$ ").strip() == "0"
 
 
-def lancer(numero, n):
-    comptes = charger_comptes()
-    if not comptes:
-        print(Y + "[!] Aucun compte dans config.txt" + X)
+def valid_phone(number):
+    digits = "".join(c for c in number if c.isdigit())
+    return 8 <= len(digits) <= 15
+
+
+def open_form():
+    url = CONFIG.get(
+        "SUPPORT_FORM",
+        "https://www.whatsapp.com/contact/"
+    )
+    print(GREEN + "\nOpening WhatsApp contact page..." + RESET)
+    webbrowser.open(url)
+    pause()
+
+
+def send_email(subject, body):
+    sender = SECRETS.get("GMAIL_ADDRESS", "")
+    password = SECRETS.get("GMAIL_APP_PASSWORD", "")
+    recipient = CONFIG.get("SUPPORT_EMAIL", "")
+
+    if not sender or not password or not recipient:
+        print(RED + "\nEmail is not configured." + RESET)
+        print(WHITE + "Configure your private .env file and a verified")
+        print("support email in config.txt." + RESET)
+        pause()
         return
-    print(C + f"[+] Cible : {numero} | Envois : {n} | Comptes : {len(comptes)}" + X)
-    time.sleep(1)
-    ok = ko = 0
-    for i in range(1, n + 1):
-        m, p = random.choice(comptes)
-        try:
-            envoyer(m, p, numero, random.choice(SUJETS), CORPS.format(num=numero))
-            ok += 1
-            print(G + f"  [{i}/{n}] OK   {m}" + X)
-        except Exception as e:
-            ko += 1
-            print(R + f"  [{i}/{n}] FAIL {m} :: {e}" + X)
-        time.sleep(random.uniform(4, 12))
-    print()
-    print(G + f"Reussis : {ok}" + X, "|", R + f"Echecs : {ko}" + X)
+
+    print(CYAN + "\nEmail preview:" + RESET)
+    print("From:", sender)
+    print("To:", recipient)
+    print("Subject:", subject)
+    print("\n" + body)
+
+    print(WHITE + "\n1. SEND THIS ONE EMAIL")
+    print("2. CANCEL" + RESET)
+
+    choice = input("\nroot@the-pain:~$ ").strip()
+
+    if choice != "1":
+        print(GRAY + "Cancelled. Nothing was sent." + RESET)
+        pause()
+        return
+
+    confirm = input(
+        RED + "Type SEND to confirm: " + RESET
+    ).strip()
+
+    if confirm != "SEND":
+        print(GRAY + "Cancelled." + RESET)
+        pause()
+        return
+
+    message = EmailMessage()
+    message["From"] = sender
+    message["To"] = recipient
+    message["Subject"] = subject
+    message.set_content(body)
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as smtp:
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.ehlo()
+            smtp.login(sender, password)
+            smtp.send_message(message)
+
+        print(GREEN + "\nEmail sent successfully." + RESET)
+
+    except Exception as error:
+        print(RED + "\nEmail could not be sent." + RESET)
+        print("Check your Gmail setup and internet connection.")
+        print(GRAY + str(error) + RESET)
+
+    pause()
 
 
-def menu():
-    banniere()
-    print(W + " [1]" + X + " Lancer un signalement")
-    print(W + " [2]" + X + " Voir mes comptes")
-    print(W + " [3]" + X + " Quitter")
-    print(R + "-" * 55 + X)
-    return input(Y + " TDL-BAN > " + X).strip()
+def request_tool(mode):
+    logo()
+
+    if mode == "BAN":
+        print(RED + BOLD + "THE PAIN BAN TOOL" + RESET)
+        print("Prepare a factual privacy complaint.")
+    else:
+        print(GREEN + BOLD + "THE PAIN UNBAN TOOL" + RESET)
+        print("Prepare an account review request.")
+
+    number = input(CYAN + "\nWhatsApp number (+country code): " + RESET)
+
+    if not valid_phone(number):
+        print(RED + "Invalid phone number." + RESET)
+        pause()
+        return
+
+    reason = input(CYAN + "Explain the situation: " + RESET).strip()
+
+    if not reason:
+        print(RED + "An explanation is required." + RESET)
+        pause()
+        return
+
+    if mode == "BAN":
+        subject = "WhatsApp Privacy Concern"
+
+        body = f"""Hello WhatsApp Support,
+
+I would like to report a privacy concern for review.
+
+Reported number: {number}
+
+Details:
+{reason}
+
+Please assess this report according to your policies.
+I understand that any decision is yours to make.
+
+Thank you.
+"""
+    else:
+        subject = "Request for WhatsApp Account Review"
+
+        body = f"""Hello WhatsApp Support,
+
+I would like to request a review of my account.
+
+My WhatsApp number: {number}
+
+Explanation:
+{reason}
+
+Please review my case and let me know if my account
+can be restored.
+
+Thank you.
+"""
+
+    logo()
+    print(WHITE + BOLD + "REQUEST READY" + RESET)
+    print("\nSubject:", subject)
+    print("Number:", number)
+    print("\nChoose a contact method:")
+    print(RED + "1. SEND ONE EMAIL" + RESET)
+    print(CYAN + "2. OPEN OFFICIAL CONTACT FORM" + RESET)
+    print(WHITE + "3. CANCEL" + RESET)
+    print(WHITE + "0. BACK" + RESET)
+
+    choice = input("\nroot@the-pain:~$ ").strip()
+
+    if choice == "1":
+        send_email(subject, body)
+    elif choice == "2":
+        open_form()
+    elif choice == "3" or choice == "0":
+        return
+
+
+def help_page():
+    while True:
+        logo()
+        print(CYAN + BOLD + "HELP CENTER" + RESET)
+        print("""
+1. BAN TOOL:
+   Prepare a genuine privacy complaint.
+
+2. UNBAN TOOL:
+   Request a review of your own suspended account.
+
+3. EMAIL:
+   Requires a private Gmail configuration.
+
+4. CONTACT FORM:
+   Opens the official WhatsApp contact page.
+
+Only provide truthful information.
+One carefully prepared request is sufficient.
+""")
+        if back():
+            return
+
+
+def about_page():
+    while True:
+        logo()
+        print(RED + BOLD + "ABOUT THE DEVELOPER" + RESET)
+        print("\nDeveloper:", CONFIG.get("DEVELOPER", "THE PAIN TDL"))
+        print("WhatsApp:", CONFIG.get("DEVELOPER_NUMBER", "Not configured"))
+        print("Channel:", CONFIG.get("WHATSAPP_CHANNEL", "Not configured"))
+        print("Version:", CONFIG.get("VERSION", "1.0.0"))
+        print("\nPOWERED BY THE PAIN TDL")
+
+        if back():
+            return
 
 
 def main():
     while True:
-        c = menu()
-        if c == "1":
-            num = input(" Numero (+2126XXXXXXX) > ").strip()
-            if not num.startswith("+"):
-                print(R + "[!] Mets le + devant" + X)
-                time.sleep(2); continue
-            try:
-                n = int(input(" Nombre d'emails > ").strip())
-            except ValueError:
-                print(R + "[!] Nombre invalide" + X); time.sleep(2); continue
-            lancer(num, n)
-            input("\n Entree pour revenir...")
-        elif c == "2":
-            cs = charger_comptes()
-            print(Y + f"\n {len(cs)} compte(s) :" + X)
-            for m, _ in cs:
-                print("  -", m)
-            input("\n Entree...")
-        elif c == "3":
-            print(R + " Bye." + X); break
+        logo()
+
+        print(RED + BOLD + "[1] THE PAIN BAN TOOL" + RESET)
+        print(GREEN + BOLD + "[2] THE PAIN UNBAN TOOL" + RESET)
+        print(WHITE + "[3] HELP" + RESET)
+        print(WHITE + "[4] ABOUT" + RESET)
+        print(WHITE + "[5] EXIT" + RESET)
+
+        choice = input(GREEN + "\nroot@the-pain:~$ " + RESET).strip()
+
+        if choice == "1":
+            request_tool("BAN")
+        elif choice == "2":
+            request_tool("UNBAN")
+        elif choice == "3":
+            help_page()
+        elif choice == "4":
+            about_page()
+        elif choice == "5":
+            clear()
+            print(RED + BOLD + "THE PAIN TDL - SYSTEM OFFLINE" + RESET)
+            break
+        else:
+            print(RED + "Invalid option." + RESET)
+            time.sleep(1)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n" + RED + "Program stopped." + RESET)
+        sys.exit(0)
